@@ -1,7 +1,5 @@
 package moviehouse;
 
-import java.util.ArrayList;
-
 public class MainAPP {
 	
 	static Movie moive;
@@ -9,13 +7,21 @@ public class MainAPP {
 	public static void main(String[] args) throws Exception {
 		System.out.println("프로그램을 시작합니다!");
 		
-		ArrayList<Movie> list = Movie.findAll();
+		Menu menu = MainMenu.getInstance();
 		
-		for(Movie m : list) {
-			System.out.println(m.toString());
+		while(menu !=null ) {
+			menu.print();
+			menu = menu.next();
 		}
 		
 		System.out.println("프로그램을 종료합니다!");
 		
 	}
+}
+
+
+interface Menu{	//	메뉴로 돌아가기
+	
+	void print();
+	Menu next();	//	이전 메뉴 출력
 }
