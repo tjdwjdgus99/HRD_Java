@@ -1,164 +1,92 @@
 package app.ij.mlwithtensorflowlite;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.annotation.SuppressLint;
-import android.content.ContentValues;
-import android.content.Intent;
+import android.app.Activity;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CalendarView;
-import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.EditText;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 
-public class calendarview extends AppCompatActivity {
+import app.ij.mlwithtensorflowlite.R;
+import app.ij.mlwithtensorflowlite.fruitselection;
 
-    public String fname=null;
-    public String str=null;
-    public CalendarView calendarView;
-    public Button cha_Btn,del_Btn,save_Btn;
-    public TextView diaryTextView,textView2,textView3;
-    public EditText contextEditText;
+public class calendarview extends Activity {
+
+    private TextView dateTextView;
+    private TextView fruitTextView;
+    private SQLiteDatabase sqlDB;
+    private Button btnRestart;
+    private EditText etxRestart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calendarview);
-        calendarView=findViewById(R.id.calendarView);
-        diaryTextView=findViewById(R.id.diaryTextView);
-        save_Btn=findViewById(R.id.save_Btn);
-        del_Btn=findViewById(R.id.del_Btn);
-        cha_Btn=findViewById(R.id.cha_Btn);
-        textView2=findViewById(R.id.textView2);
-        textView3=findViewById(R.id.textView3);
-        contextEditText=findViewById(R.id.contextEditText);
-        //로그인 및 회원가입 엑티비티에서 이름을 받아옴
-        Intent intent=getIntent();
-        String name=intent.getStringExtra("userName");
-        final String userID=intent.getStringExtra("userID");
+        dateTextView = findViewById(R.id.dateTextView);
+        fruitTextView = findViewById(R.id.fruitTextView);
+        btnRestart = findViewById(R.id.btnRestart);
+        etxRestart = findViewById(R.id.etxRestart);
 
+        // 데이터베이스 연결
+        fruitselection.myDBHelper dbHelper = new fruitselection.myDBHelper(this);
+        sqlDB = dbHelper.getReadableDatabase();
+
+        CalendarView calendarView = findViewById(R.id.calendarView);
         calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
             @Override
-            public void onSelectedDayChange(@NonNull CalendarView view, int year, int month, int dayOfMonth) {
-                diaryTextView.setVisibility(View.VISIBLE);
-                save_Btn.setVisibility(View.VISIBLE);
-                contextEditText.setVisibility(View.VISIBLE);
-                textView2.setVisibility(View.INVISIBLE);
-                cha_Btn.setVisibility(View.INVISIBLE);
-                del_Btn.setVisibility(View.INVISIBLE);
-                diaryTextView.setText(String.format("%d / %d / %d",year,month+1,dayOfMonth));
-                contextEditText.setText("");
-                checkDay(year,month,dayOfMonth,userID);
+            public void onSelectedDayChange(CalendarView view, int year, int month, int dayOfMonth) {
+                String selectedDate = year + "-" + (month + 1) + "-" + dayOfMonth;
+
+                // 데이터베이스에서 날짜에 해당하는 데이터를 조회
+                String fruitData = getFruitDataFromDatabase(selectedDate);
+
+                dateTextView.setText("날짜: " + selectedDate);
+                fruitTextView.setText("" + fruitData);
             }
         });
-        save_Btn.setOnClickListener(new View.OnClickListener() {
+
+        btnRestart.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                saveDiary(fname);
-                str=contextEditText.getText().toString();
-                textView2.setText(str);
-                save_Btn.setVisibility(View.INVISIBLE);
-                cha_Btn.setVisibility(View.VISIBLE);
-                del_Btn.setVisibility(View.VISIBLE);
-                contextEditText.setVisibility(View.INVISIBLE);
-                textView2.setVisibility(View.VISIBLE);
+            public void onClick(View v) {
+                // etxRestart에서 입력한 값을 가져옴
+                String selectedDate = etxRestart.getText().toString();
 
+                // 데이터베이스에서 선택한 날짜에 해당하는 데이터를 조회
+                String fruitData = getFruitDataFromDatabase(selectedDate);
+
+                dateTextView.setText("날짜: " + selectedDate);
+                fruitTextView.setText("" + fruitData);
             }
         });
     }
 
-    public void  checkDay(int cYear,int cMonth,int cDay,String userID){
-        fname=""+userID+cYear+"-"+(cMonth+1)+""+"-"+cDay+".txt";//저장할 파일 이름설정
-        FileInputStream fis=null;//FileStream fis 변수
+    // 데이터베이스에서 날짜에 해당하는 과일 데이터를 가져오는 메서드
+    private String getFruitDataFromDatabase(String selectedDate) {
+        StringBuilder fruitData = new StringBuilder();
 
-        try{
-            fis=openFileInput(fname);
+        Cursor cursor = sqlDB.rawQuery("SELECT * FROM groupTBL WHERE SUBSTR(gTime, 1, 10) = ?", new String[]{selectedDate});
 
-            byte[] fileData=new byte[fis.available()];
-            fis.read(fileData);
-            fis.close();
-
-            str=new String(fileData);
-
-            contextEditText.setVisibility(View.INVISIBLE);
-            textView2.setVisibility(View.VISIBLE);
-            textView2.setText(str);
-
-            save_Btn.setVisibility(View.INVISIBLE);
-            cha_Btn.setVisibility(View.VISIBLE);
-            del_Btn.setVisibility(View.VISIBLE);
-
-            cha_Btn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    contextEditText.setVisibility(View.VISIBLE);
-                    textView2.setVisibility(View.INVISIBLE);
-                    contextEditText.setText(str);
-
-                    save_Btn.setVisibility(View.VISIBLE);
-                    cha_Btn.setVisibility(View.INVISIBLE);
-                    del_Btn.setVisibility(View.INVISIBLE);
-                    textView2.setText(contextEditText.getText());
-                }
-
-            });
-            del_Btn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    textView2.setVisibility(View.INVISIBLE);
-                    contextEditText.setText("");
-                    contextEditText.setVisibility(View.VISIBLE);
-                    save_Btn.setVisibility(View.VISIBLE);
-                    cha_Btn.setVisibility(View.INVISIBLE);
-                    del_Btn.setVisibility(View.INVISIBLE);
-                    removeDiary(fname);
-                }
-            });
-            if(textView2.getText()==null){
-                textView2.setVisibility(View.INVISIBLE);
-                diaryTextView.setVisibility(View.VISIBLE);
-                save_Btn.setVisibility(View.VISIBLE);
-                cha_Btn.setVisibility(View.INVISIBLE);
-                del_Btn.setVisibility(View.INVISIBLE);
-                contextEditText.setVisibility(View.VISIBLE);
-            }
-
-        }catch (Exception e){
-            e.printStackTrace();
+        while (cursor.moveToNext()) {
+            String name = cursor.getString(0);
+            int number = cursor.getInt(1);
+            fruitData.append(name).append(" ").append(number).append("개, ").append("\n");
         }
-    }
-    @SuppressLint("WrongConstant")
-    public void removeDiary(String readDay){
-        FileOutputStream fos=null;
+        cursor.close();
 
-        try{
-            fos=openFileOutput(readDay,MODE_NO_LOCALIZED_COLLATORS);
-            String content="";
-            fos.write((content).getBytes());
-            fos.close();
-
-        }catch (Exception e){
-            e.printStackTrace();
+        if (fruitData.length() > 0) {
+            // 마지막 쉼표 제거
+            fruitData.setLength(fruitData.length() - 2);
+        } else {
+            fruitData.append("데이터가 없습니다.");
         }
-    }
-    @SuppressLint("WrongConstant")
-    public void saveDiary(String readDay){
-        FileOutputStream fos=null;
 
-        try{
-            fos=openFileOutput(readDay,MODE_NO_LOCALIZED_COLLATORS);
-            String content=contextEditText.getText().toString();
-            fos.write((content).getBytes());
-            fos.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        return fruitData.toString();
     }
 }
